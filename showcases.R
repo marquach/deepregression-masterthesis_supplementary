@@ -6,9 +6,9 @@ library(kableExtra)
 library(ggcorrplot)
 library(ggpubr)
 library(gamlss)
-devtools::load_all()
+devtools::load_all("/Users/marquach/Desktop/github/deepregression/")
 options(knitr.kable.NA = '')
-path <- "/Users/marquach/Desktop/github/deepregression_master-thesis_supple/"
+path <- "/Users/marquach/Desktop/github/deepregression_master-thesis_supplementary/"
 
 options(orthogonalize = F)
 
@@ -20,6 +20,7 @@ x <- seq(from = 0, to = 1, 0.001)
 beta1 <- 2
 set.seed(42)
 y <- rnorm(n = length(x), mean = 0*x, sd = exp(beta1*x))
+toy_data <- data.frame(x = x, y = y)
 
 toy_plot <- ggplot(data = toy_data, aes(x = x, y = y))+
   geom_point(shape = 1) +theme_classic()
@@ -51,12 +52,17 @@ kbl(res_toy, digits = 2, format = "latex", escape = F, booktabs = T,
   add_header_above(header = c(" "=1, "$\\\\mu$" = 2, "$\\\\sigma^2$" = 2), escape = F) %>%
   writeLines(paste0(path,"toy_example-coefs.tex"))
 
+mod_torch_res <- mod_torch %>% fitted()
+toy_gamlss_res <- toy_gamlss %>% fitted()
 
+round(sapply(list(mod_torch_res, toy_gamlss_res), function(x)
+  mean(x - toy_data$y)^2), 4)
 
 ################################################################################
 ################################################################################
 #################### additive models #################### 
 #### GAM data mcycles
+set.seed(42)
 data(mcycle, package = 'MASS')
 plot(mcycle$times, mcycle$accel)
 # Erst mit mgcv
@@ -86,6 +92,7 @@ gam_torch %>% fit(epochs = 2000, early_stopping = F, validation_split = 0)
 gam_tf %>% fit(epochs = 2000, early_stopping = F, validation_split = 0)
 
 # Interesting (does not converge when validation_loss is used as early_stopping)
+
 
 
 mean((mcycle$accel - fitted(gam_mgcv) )^2)
@@ -141,6 +148,7 @@ knitr::kable(coef_comp, format = "latex", digits = 2) %>% writeLines(paste0(path
 
 
 # load  and prepare data
+set.seed(42)
 airbnb <- readRDS("/Users/marquach/Desktop/R_Projects/semi-structured_distributional_regression/application/airbnb/munich_clean.RDS")
 airbnb$days_since_last_review <- as.numeric(
   difftime(airbnb$date, airbnb$last_review)
@@ -214,24 +222,34 @@ kbl(lin_coef, format = "latex", digits = 2, booktabs = T) %>%
   add_header_above(header = c(" " = 1, "mu" = 3, "sigma" = 3)) %>%
   writeLines(paste0(path, "deep-lin_coefs.tex"))
 
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
 
-pdf(file = paste0(path, "comp_tf-torch.pdf"), width = 14, height = 7)
+cols <- gg_color_hue(2)
+
+pdf(file = paste0(path, "results/use-case/comp_tf-torch.pdf"), width = 14, height = 7)
 par(mfrow = c(1,2))
 which_plot <- 1
-plot(mod_torch, which = which_plot, bty = "L", main = "")
+plot(mod_torch, which = which_plot, bty = "L", main = "", col = cols[1])
 par(new=TRUE)
-plot(mod_tf, which = which_plot, bty = "L", axes = FALSE, pch = 16, main = "")
+plot(mod_tf, which = which_plot, bty = "L", axes = FALSE, pch = 16, main = "",
+    col = cols[2])
 legend(x = 11,y = 0,
        legend = c("Torch", "Tensorflow"),
-       pch = c(16, 1) )
+       pch = c(1, 16),
+       col = cols)
 
 which_plot <- 2
-plot(mod_tf,  which = which_plot, main = "", bty = "L")
+plot(mod_tf,  which = which_plot, main = "", bty = "L", col = cols[2], pch = 16)
 par(new=TRUE)
-plot(mod_torch, which = which_plot, axes = FALSE, pch = 16, main = "")
+plot(mod_torch, which = which_plot, axes = FALSE, pch = 1, main = "",
+     col = cols[1])
 legend(x = 2250,y = 0,
        legend = c("Torch", "Tensorflow"),
-       pch = c(16, 1) )
+       pch = c(1, 16),
+       col = cols)
 dev.off()
 par(mfrow = c(1,1))
 
