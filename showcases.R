@@ -19,15 +19,18 @@ options(orthogonalize = F)
 x <- seq(from = 0, to = 1, 0.001)
 beta1 <- 2
 set.seed(42)
-y <- rnorm(n = length(x), mean = 0*x, sd = exp(beta1*x))
+sigma <- exp(beta1*x)
+y <- rnorm(n = length(x), mean = 0*x, sd = sigma)
 toy_data <- data.frame(x = x, y = y)
 
 toy_plot <- ggplot(data = toy_data, aes(x = x, y = y))+
   geom_point(shape = 1) +theme_classic()
+toy_plot
+toy_gamlss <- gamlss(formula = y ~ 1+x,
+                     sigma.formula = ~ 1 + x, family = NO)
+toy_gamlss
 ggsave(filename = paste0(path, "toy_plot.png"), width = 14, height = 8)
 
-toy_gamlss <- gamlss(formula = y ~ 1+x,
-       sigma.formula = ~ 1 + x, family = NO)
 
 mod_torch <- deepregression(
   list_of_formulas = list(loc = ~ 1 + x, scale = ~ 1 + x),
@@ -59,8 +62,8 @@ round(sapply(list(mod_torch_res, toy_gamlss_res), function(x)
   mean(x - toy_data$y)^2), 4)
 
 distr_torch <- get_distribution(mod_torch)
-distr_torch_res <- data.frame(mu = as.array(distr_torch$mean),
-                              sigma = as.array(distr_torch$stddev),
+distr_torch_res <- data.frame(mu = as.array(distr_torch$loc),
+                              sigma = as.array(distr_torch$scale),
                               Package = "deepregression")
 distr_gamlss_res <- data.frame(mu = toy_gamlss$mu.fv,
                                sigma = toy_gamlss$sigma.fv,
@@ -76,7 +79,7 @@ plot_gamlss
 path <- "/Users/marquach/Desktop/github/deepregression-masterthesis_supplementary/results/numerical-experiments/"
 ggsave(filename = paste0(path, "plot_gamlss.png"), width = 14, height = 8)
 
-################################################################################
+ ################################################################################
 ################################################################################
 #################### additive models #################### 
 #### GAM data mcycles
