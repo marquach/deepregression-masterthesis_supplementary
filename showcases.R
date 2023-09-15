@@ -37,7 +37,7 @@ mod_torch
 # default lr = 0.001 change to 0.1 
 #mod_torch$model <- mod_torch$model  %>% set_opt_hparams(lr = 0.01)
 # torch approach does have a generic fit function 
-mod_torch %>% fit(epochs = 500, early_stopping = F, validation_split = 0)
+mod_torch %>% fit(epochs = 200, early_stopping = F, validation_split = 0)
 
 res_toy <- t(round(cbind(
   'gamlss' = c(toy_gamlss$mu.coefficients, toy_gamlss$sigma.coefficients),
@@ -57,6 +57,21 @@ toy_gamlss_res <- toy_gamlss %>% fitted()
 
 round(sapply(list(mod_torch_res, toy_gamlss_res), function(x)
   mean(x - toy_data$y)^2), 4)
+
+distr_torch <- get_distribution(mod_torch)
+distr_torch_res <- data.frame(mu = as.array(distr_torch$mean),
+                              sigma = as.array(distr_torch$stddev),
+                              package = "deepregression")
+distr_gamlss_res <- data.frame(mu = toy_gamlss$mu.fv,
+                               sigma = toy_gamlss$sigma.fv,
+                               package = "gamlss")
+distr_res <- cbind(x=x, rbind(distr_torch_res, distr_gamlss_res))
+ggplot(data = distr_res,  aes(x = x, y = mu, col = package))+
+  geom_line()+
+  theme_classic()
+ggplot(data = distr_res,  aes(x = x, y = sigma, col = package))+
+  geom_line()+
+  theme_classic()
 
 ################################################################################
 ################################################################################
